@@ -1,1075 +1,222 @@
-local ZenWareLib2 = {}
-ZenWareLib2.Settings = {}
-ZenWareLib2.Tabs = {}
-ZenWareLib2.Settings.Default = {}
-ZenWareLib2.Mouse = game:GetService("Players").LocalPlayer:GetMouse()
-ZenWareLib2.Settings.Default.TabSelectorFont = nil
-ZenWareLib2.Settings.Default.TabSelectorSize = nil
-ZenWareLib2.Settings.Default.TabSelectorColor =  nil
-ZenWareLib2.Settings.Default.ItemFontSize = 10
-ZenWareLib2.Settings.Default.ItemBackgroundColor = Color3.fromRGB(22, 22, 22);
-ZenWareLib2.Settings.Default.ItemFont = Enum.Font.GothamSemibold
-ZenWareLib2.Settings.Default.ItemTextColor = Color3.fromRGB(190, 190, 190);
-ZenWareLib2.Settings.Default.ButtonBackgroundColor = Color3.fromRGB(18, 18, 19)
-ZenWareLib2.Settings.Default.TextBoxBackgroundColor = Color3.fromRGB(18, 18, 19)
-ZenWareLib2.Settings.Default.SideBarBackgroundColor = Color3.fromRGB(28, 28, 28)
-ZenWareLib2.Settings.Default.PageIndicatorBackgroundColor = Color3.fromRGB(16, 16, 16)
+--
+-- Zen Ware's UI lib
+-- written by: Venkopat
+--
 
---PageIndicator
---Color3.fromRGB(28, 28, 28)
+-- Constants
+local ts = game:GetService("TweenService")
+local textservice = game:GetService("TextService")
 
-local UIName = tostring(math.random(1, 100))..tostring("ZenLib")..tostring(math.random(1, 100))
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "UILIB"
+ScreenGui.ResetOnSpawn = false
 
-ZenWareLib2.Settings.Parent = game:GetService("CoreGui")
-ZenWareLib2.Settings.Sliding = false;
-ZenWareLib2.Settings.Tabs = 0;
+xpcall(function() ScreenGui.Parent = game:GetService("CoreGui") end,
+       function() ScreenGui.Parent = game:GetService("Players").LocalPlayer.PlayerGui end)
 
-function ZenWareLib2:Create(InstanceClass, Properties)
-    local Inst = Instance.new(InstanceClass)
-    for k, v in pairs(Properties) do
-        if k ~= "Parent" then Inst[k] = v end
-    end
-    Inst.Parent = Properties.Parent
-    return Inst
+-- Tab
+local Tab = {}
+Tab.__index = Tab
+
+-- Window
+local Window = {}
+Window.__index = Window
+
+function Window.new(screengui, title)
+	return Window.init(
+		setmetatable({
+			_tabCreated = {};
+			_tabSelected = {};
+			_selectedTab = nil;
+			_tabs = {};
+		}, Window)
+		,screengui
+		,title
+	)
 end
 
-function ZenWareLib2:HSVtoRGB(hsv)
-    local color3 = hsv
-    local r = math.floor(color3.R * 255)
-    local g = math.floor(color3.G * 255)
-    local b = math.floor(color3.B * 255)
-    return r,g,b
-  end
-  
-  function ZenWareLib2:RGBtoHSV(rgb)
-      local h, s, v = Color3.toHSV(rgb)
-      return h,s,v
-  end
-
-function ZenWareLib2:Destroy()
-    game.CoreGui[UIName]:Destroy()
+function Window:init(screengui, title)
+	local background = Instance.new("Frame")
+	background.Name = "Window"
+	background.Size = UDim2.fromOffset(400, 250)
+	background.BackgroundTransparency = 1
+	background.Parent = screengui
+	
+	local backgroundLayout = Instance.new("UIListLayout")
+	backgroundLayout.SortOrder = "LayoutOrder"
+	backgroundLayout.Parent = background
+	
+	-- top
+	local backgroundTop = Instance.new("Frame")
+	backgroundTop.Size = UDim2.new(1, 0, 0, 30)
+	backgroundTop.LayoutOrder = 0
+	backgroundTop.BackgroundColor3 = Color3.fromRGB(33, 33, 33)
+	backgroundTop.Parent = background
+	
+	local backgroundTopCorner = Instance.new("UICorner")
+	backgroundTopCorner.CornerRadius = UDim.new(0, 10)
+	backgroundTopCorner.Parent = backgroundTop
+	
+	local backgroundTopSquarify = Instance.new("Frame")
+	backgroundTopSquarify.BackgroundColor3 = backgroundTop.BackgroundColor3
+	backgroundTopSquarify.BorderSizePixel = 0
+	backgroundTopSquarify.Size = UDim2.fromScale(1, 0.5)
+	backgroundTopSquarify.Position = UDim2.fromScale(0, 0.5)
+	backgroundTopSquarify.Parent = backgroundTop
+	
+	local backgroundTopBorder = Instance.new("Frame")
+	backgroundTopBorder.AnchorPoint = Vector2.new(0, 1)
+	backgroundTopBorder.Position = UDim2.fromScale(0, 1)
+	backgroundTopBorder.Size = UDim2.new(1, 0, 0, 1)
+	backgroundTopBorder.BorderSizePixel = 0
+	backgroundTopBorder.BackgroundColor3 = Color3.fromRGB(42, 42, 42)
+	backgroundTopBorder.Parent = backgroundTop
+	
+	local topTitle = Instance.new("TextLabel")
+	topTitle.Text = title
+	topTitle.Font = "Ubuntu"
+	topTitle.TextSize = 14
+	topTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+	topTitle.Size = UDim2.fromScale(1, 1)
+	topTitle.BackgroundTransparency = 1
+	topTitle.TextXAlignment = "Left"
+	topTitle.Parent = backgroundTop
+	
+	local topTitlePadding = Instance.new("UIPadding")
+	topTitlePadding.PaddingLeft = UDim.new(0, 10)
+	topTitlePadding.Parent = topTitle
+	
+	local topTabsContainer = Instance.new("Frame")
+	topTabsContainer.Size = UDim2.fromScale(1, 1)
+	topTabsContainer.BackgroundTransparency = 1
+	topTabsContainer.Parent = backgroundTop
+	
+	local topTabsContainerLayout = Instance.new("UIListLayout")
+	topTabsContainerLayout.FillDirection = "Horizontal"
+	topTabsContainerLayout.HorizontalAlignment = "Right"
+	topTabsContainerLayout.Parent = topTabsContainer
+	
+	local topTabsContainerPadding = Instance.new("UIPadding")
+	topTabsContainerPadding.PaddingRight = UDim.new(0, 9)
+	topTabsContainerPadding.Parent = topTabsContainer
+	
+	-- bottom
+	local backgroundBottom = Instance.new("Frame")
+	backgroundBottom.Size = UDim2.new(1, 0, 1, -30)
+	backgroundBottom.LayoutOrder = 1
+	backgroundBottom.BackgroundColor3 = Color3.fromRGB(29, 29, 29)
+	backgroundBottom.Parent = background
+	
+	local backgroundBottomCorner = Instance.new("UICorner")
+	backgroundBottomCorner.CornerRadius = UDim.new(0, 10)
+	backgroundBottomCorner.Parent = backgroundBottom
+	
+	local backgroundBottomSquarify = Instance.new("Frame")
+	backgroundBottomSquarify.BackgroundColor3 = backgroundBottom.BackgroundColor3
+	backgroundBottomSquarify.BorderSizePixel = 0
+	backgroundBottomSquarify.Size = UDim2.fromScale(1, 0.5)
+	backgroundBottomSquarify.Parent = backgroundBottom
+	
+	-- tabs functionality
+	local selectFrame = Instance.new("Frame")
+	selectFrame.BackgroundColor3 = Color3.fromRGB(100, 200, 250)
+	selectFrame.Size = UDim2.fromOffset(0, 0)
+	selectFrame.BorderSizePixel = 0
+	selectFrame.Parent = backgroundTop
+	
+	local tabAnimationInfo = TweenInfo.new(0.2)
+	
+	function Tab:updateTextColor()
+		if self.selected then return end
+		if self.hovered then
+			self.button.TextColor3 = Color3.fromRGB(120, 120, 120)
+		else
+			self.button.TextColor3 = Color3.fromRGB(85, 85, 85)
+		end
+	end
+	
+	function self._tabCreated.createButton(tab)
+		local button = Instance.new("TextButton")
+		button.BackgroundTransparency = 1
+		button.Text = tab.name
+		button.Font = "Ubuntu"
+		button.TextSize = 14
+		button.Size = UDim2.new(0, textservice:GetTextSize(tab.name, 14, Enum.Font.Ubuntu, Vector2.new(1000, 30)).X + 8, 1, 0)
+		button.TextColor3 = Color3.fromRGB(85, 85, 85)
+		button.Parent = topTabsContainer
+		
+		button.Activated:Connect(function()
+			self:selectTab(tab.name)
+		end)
+		
+		local function updateLineTween()
+			if tab.lineTween then
+				tab.lineTween:Destroy()
+			end
+			tab.lineTween = ts:Create(selectFrame, tabAnimationInfo, {
+				Size = UDim2.fromOffset(button.AbsoluteSize.X, 2);
+				Position = UDim2.fromOffset(button.AbsolutePosition.X, 0);
+			})
+		end
+		
+		updateLineTween()
+		
+		tab.updateLineTween = button:GetPropertyChangedSignal("AbsolutePosition"):Connect(updateLineTween)
+		
+		tab.buttonTween = ts:Create(button, tabAnimationInfo, {
+			TextColor3 = Color3.fromRGB(255, 255, 255);
+		})
+		
+		tab.buttonUnselectTween = ts:Create(button, tabAnimationInfo, {
+			TextColor3 = Color3.fromRGB(85, 85, 85);
+		})
+		
+		tab.button = button
+		
+		button.MouseEnter:Connect(function()
+			tab.hovered = true
+			tab:updateTextColor()
+		end)
+		
+		button.MouseLeave:Connect(function()
+			tab.hovered = false
+			tab:updateTextColor()
+		end)
+	end
+	
+	function self._tabSelected.animateButton(tab, oldtab)
+		if oldtab then
+			oldtab.buttonUnselectTween:Play()
+		end
+		tab.lineTween:Play()
+		tab.buttonTween:Play()
+	end
+	
+	return self
 end
 
-function ZenWareLib2:OpenClose()
-    if game.CoreGui[UIName].Enabled then
-        game.CoreGui[UIName].Enabled = false
-    else
-        game.CoreGui[UIName].Enabled = true
-    end
+function Window:createTab(name)
+	local tab = setmetatable({
+		name = name;
+	}, Tab)
+	self._tabs[name] = tab
+	
+	for _, task in pairs(self._tabCreated) do
+		task(tab)
+	end
 end
 
---ZenLib:SetSettings({})
-
-function ZenWareLib2:SetSettings(Table)
-    ZenWareLib2.Settings.Default.TabSelectorFont = Table.TabSelectorFont or nil
-    ZenWareLib2.Settings.Default.TabSelectorSize = Table.TabSelectorSize or nil
-    ZenWareLib2.Settings.Default.TabSelectorColor = Table.TabSelectorColor or nil
-    ZenWareLib2.Settings.Default.ItemFont = Table.ItemFont or Enum.Font.GothamSemibold
-    ZenWareLib2.Settings.Default.ItemFontSize = Table.ItemFontSize or 10
-    ZenWareLib2.Settings.Default.ItemTextColor =  Table.ItemTextColor or Color3.fromRGB(190, 190, 190);
-    ZenWareLib2.Settings.Default.ItemBackgroundColor = Table.ItemBackgroundColor or Color3.fromRGB(22, 22, 22);
-    ZenWareLib2.Settings.Default.ButtonBackgroundColor = Table.ButtonBackgroundColor or Color3.fromRGB(18, 18, 19)
-    ZenWareLib2.Settings.Default.TextBoxBackgroundColor = Table.TextBoxBackgroundColor or Color3.fromRGB(18, 18, 19)
-    ZenWareLib2.Settings.Default.SideBarBackgroundColor = Table.SideBarBackgroundColor or Color3.fromRGB(28, 28, 28)
-    ZenWareLib2.Settings.Default.PageIndicatorBackgroundColor = Table.PageIndicatorBackgroundColor or Color3.fromRGB(16, 16, 16)
-
+function Window:selectTab(name)
+	local oldtab = self._selectedTab
+	if oldtab then
+		oldtab.selected = false
+	end
+	
+	local tab = self._tabs[name]
+	self._selectedTab = tab
+	tab.selected = true
+	
+	for _, task in pairs(self._tabSelected) do
+		task(tab, oldtab)
+	end
 end
-
-function ZenWareLib2:Notify(Table)
-    assert(Table.Text, "Text expected");
-    local TextSize = Table.TextSize or 17
-    local Duration = Table.Duration or 3
-    local Font = Table.Font or Enum.Font.SourceSansLight
-    local IsRGB = Table.RGB or Table.Rgb or false
-    local DefaultColor = Table.UnderlineColor or Table.Underlinecolor or Color3.fromRGB(255, 255, 255)
-
-    local NotifyGui = ZenWareLib2:Create("ScreenGui", {
-        Name = "ZenLibNotify";
-        Parent = game.CoreGui;
-        ZIndexBehavior = Enum.ZIndexBehavior.Sibling;
-    })
-
-    local NotifyFrame = ZenWareLib2:Create("Frame", {
-        Parent = NotifyGui;
-        BackgroundColor3 = Color3.new(0.0980392, 0.0980392, 0.0980392);
-        BorderColor3 = Color3.new(0.0980392, 0.0980392, 0.0980392);
-        Position = UDim2.new(0, -1000, 0.888000011, 0);
-        Size = UDim2.new(0, 220, 0, 57);
-    })
-
-    local NotifyLabel = ZenWareLib2:Create("TextLabel", {
-        Parent = NotifyFrame;
-        BackgroundColor3 = Color3.new(1, 1, 1);
-        BackgroundTransparency = 1;
-        Position = UDim2.new(0.0446608812, 0, 0.191880628, 0);
-        Size = UDim2.new(0, 200, 0, 34);
-        Font = Font;
-        Text = Table.Text;
-        TextColor3 = Color3.new(1, 1, 1);
-        TextSize = TextSize;
-        TextWrapped = true;
-    })
-
-    local RGB = ZenWareLib2:Create("Frame", {
-        Name = "RGB";
-        Parent = NotifyFrame;
-        BackgroundColor3 = DefaultColor;
-        BorderColor3 = DefaultColor;
-        Position = UDim2.new(0, 0, 1, 0);
-        Size = UDim2.new(0, 220, 0, 1);
-    })
-
-    function Rgb()
-        while true do
-            for i = 0,100 do
-                BorderColor3 = Color3.fromHSV(i/100,0.75,0.75)
-                BackgroundColor3 = Color3.fromHSV(i/100,0.75,0.75) 
-                wait()
-            end
-        end
-    end
-
-    spawn(function()
-        NotifyFrame:TweenPosition(UDim2.new(0.008, 0,0.888, 0), Enum.EasingDirection.In,  Enum.EasingStyle.Back, 1)
-        wait(tonumber(Duration))
-        NotifyFrame:TweenPosition(UDim2.new(0, -1000, 0.888000011, 0), Enum.EasingDirection.Out,  Enum.EasingStyle.Back,4.5)
-        wait(5)
-        NotifyGui:Destroy()
-    end)
-
-    if IsRGB then
-        spawn(Rgb)
-    end
-end
-
-function ZenWareLib2:CreateWindow(Name)
-    local Nigger = {}
-    local FirstTab = false;
-
-    ZenWareLib2.Settings.ScreenGui = ZenWareLib2:Create("ScreenGui", {
-        Name = tostring(UIName);
-        Parent = ZenWareLib2.Settings.Parent;
-    })
-
-    ZenWareLib2.Settings.ZenLibMainFrame = ZenWareLib2:Create("Frame", {
-        Name = "ZenLib";
-        Parent = ZenWareLib2.Settings.ScreenGui;
-        BackgroundColor3 = Color3.fromRGB(12, 12, 12);
-        BorderColor3 = Color3.fromRGB(12, 12, 12);
-        Position = UDim2.new(0.310956806, 0, 0.208737865, 0);
-        Size = UDim2.new(0, 425, 0, 272);
-    })
-
-    ZenWareLib2.Settings.TopBar = ZenWareLib2:Create("Frame", {
-        Name = "TopBar";
-        Parent = ZenWareLib2.Settings.ZenLibMainFrame;
-        BackgroundColor3 = ZenWareLib2.Settings.Default.SideBarBackgroundColor;
-        BorderColor3 = ZenWareLib2.Settings.Default.SideBarBackgroundColor;
-        Position = UDim2.new(0.164705887, 0, 0, 0);
-        Size = UDim2.new(0, 355, 0, 13);    
-    })
-
-    ZenWareLib2.Settings.PageIndicator = ZenWareLib2:Create("Frame", {
-        Name = "PageIndicator";
-        Parent = ZenWareLib2.Settings.ZenLibMainFrame;
-        BackgroundColor3 = ZenWareLib2.Settings.Default.PageIndicatorBackgroundColor;
-        BorderColor3 = ZenWareLib2.Settings.Default.PageIndicatorBackgroundColor;
-        Position = UDim2.new(0.164705887, 0, 0.0477941185, 0);
-        Size = UDim2.new(0, 355, 0, 23);
-    })
-
-    ZenWareLib2.Settings.CurrentPageName = ZenWareLib2:Create("TextLabel", {
-        Parent = ZenWareLib2.Settings.PageIndicator;
-        BackgroundColor3 = Color3.fromRGB(255, 255, 255);
-        BackgroundTransparency = 1.000;
-        Position = UDim2.new(0.030985916, 0, 0, 0);
-        Size = UDim2.new(0, 100, 0, 23);
-        Font = ZenWareLib2.Settings.Default.ItemFont;
-        Text = "NIGGER";
-        TextColor3 = ZenWareLib2.Settings.Default.ItemTextColor;
-        TextSize = ZenWareLib2.Settings.Default.ItemFontSize;
-        TextWrapped = true;
-        TextXAlignment = Enum.TextXAlignment.Left;
-    })
-
-    ZenWareLib2.Settings.SideBar = ZenWareLib2:Create("Frame", {
-        Name = "SideBar";
-        Parent = ZenWareLib2.Settings.ZenLibMainFrame;
-        BackgroundColor3 = ZenWareLib2.Settings.Default.SideBarBackgroundColor;
-        BorderColor3 = ZenWareLib2.Settings.Default.SideBarBackgroundColor;
-        Size = UDim2.new(0, 70, 0, 272);
-    })
-
-    
-    local dragging
-    local dragInput
-    local dragStart
-    local startPos
-
-    ZenWareLib2.Settings.SideBar.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            dragStart = input.Position
-            startPos = ZenWareLib2.Settings.ZenLibMainFrame.Position
-            
-            input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then
-                    dragging = false
-                end
-            end)
-        end
-    end)
-    
-    ZenWareLib2.Settings.SideBar .InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch  then
-            dragInput = input
-        end
-    end)
-
-    ZenWareLib2.Settings.TopBar.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            dragStart = input.Position
-            startPos = ZenWareLib2.Settings.ZenLibMainFrame.Position
-            
-            input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then
-                    dragging = false
-                end
-            end)
-        end
-    end)
-    
-    ZenWareLib2.Settings.TopBar.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch  then
-            dragInput = input
-        end
-    end)
-    
-    game:GetService("UserInputService").InputChanged:Connect(function(input)
-        if input == dragInput and dragging then
-            local delta = input.Position - dragStart
-            ZenWareLib2.Settings.ZenLibMainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-        end
-    end)
-
-
-
-    ZenWareLib2.Settings.SideBarTitle = ZenWareLib2:Create("TextButton", {
-        Name = "Title";
-        Parent = ZenWareLib2.Settings.SideBar;
-        BackgroundColor3 = Color3.fromRGB(45, 49, 54);
-        BackgroundTransparency = 1.000;
-        BorderColor3 = Color3.fromRGB(45, 49, 54);
-        Position = UDim2.new(0, 0, 0.0477941185, 0);
-        Size = UDim2.new(0, 70, 0, 36);
-        AutoButtonColor = false;
-        Font = Enum.Font.GothamBold;
-        Text = Name;
-        TextColor3 = Color3.fromRGB(255, 255, 255);
-        TextSize = 14.000;
-    })
-
-    ZenWareLib2.Settings.SideBarTitle.MouseButton1Down:connect(function()
-        if not State then
-            game:GetService("TweenService"):Create(ZenWareLib2.Settings.SideBarTitle, TweenInfo.new(0.2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {Rotation = 180}):Play()
-        else
-            game:GetService("TweenService"):Create(ZenWareLib2.Settings.SideBarTitle, TweenInfo.new(0.2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {Rotation = 0}):Play()
-        end
-        State = not State
-    end)
-
-    ZenWareLib2.Settings.TabSelector = ZenWareLib2:Create("Frame", {
-        Name = "TabSelector";
-        Parent = ZenWareLib2.Settings.SideBar;
-        BackgroundColor3 = ZenWareLib2.Settings.Default.SideBarBackgroundColor;
-        BorderColor3 = ZenWareLib2.Settings.Default.SideBarBackgroundColor;
-        Position = UDim2.new(0, 0, 0.261000007, 0);
-        Size = UDim2.new(0, 70, 0, 201);
-    })
-
-    local UIListLayout = ZenWareLib2:Create("UIListLayout", {
-        Parent = ZenWareLib2.Settings.TabSelector;
-        SortOrder = Enum.SortOrder.LayoutOrder;
-        Padding = UDim.new(0, 5);
-    })
-    
-    function Nigger:Section(Name)
-
-        local Nigga = {}
-        local SectionName = tostring(Name)..tostring(math.random(1, 100));
-
-        local Vis = false;
-        if FirstTab == false then
-            ZenWareLib2.Settings.CurrentPageName.Text = Name;
-            FirstTab = true;
-            Vis = true;
-        end
-
-
-        ZenWareLib2.Tabs[SectionName] = ZenWareLib2:Create("ScrollingFrame", {
-            Name = Name;
-            Parent = ZenWareLib2.Settings.ZenLibMainFrame;
-            Active = true;
-            BackgroundColor3 = Color3.fromRGB(12, 12, 12);
-            BackgroundTransparency = 1.000;
-            BorderColor3 = Color3.fromRGB(12, 12, 12);
-            Position = UDim2.new(0.190588236, 0, 0.158088237, 0);
-            Size = UDim2.new(0, 337, 0, 219);
-            ScrollBarThickness = 3;
-            Visible = Vis;
-        })
-
-        local ScrollLayout = ZenWareLib2:Create("UIListLayout", {
-            Parent = ZenWareLib2.Tabs[SectionName];
-            SortOrder = Enum.SortOrder.LayoutOrder;
-            Padding = UDim.new(0, 5);
-        })
-
-        ScrollLayout.Changed:Connect(function()
-            ZenWareLib2.Tabs[SectionName].CanvasSize = UDim2.new(0, 0, 0, ( ScrollLayout.AbsoluteContentSize.Y + 5))
-        end)
-
-        local Button = ZenWareLib2:Create("TextButton", {
-            Name = "HomeTabButton";
-            Parent = ZenWareLib2.Settings.TabSelector;
-            BackgroundColor3 = Color3.fromRGB(255, 255, 255);
-            BackgroundTransparency = 1.000;
-            Size = UDim2.new(0, 70, 0, 21);
-            AutoButtonColor = false;
-            Font = ZenWareLib2.Settings.Default.ItemFont;
-            Text = Name;
-            TextColor3 = Color3.fromRGB(255, 255, 255);
-            TextSize = ZenWareLib2.Settings.Default.ItemFontSize;    
-        })
-
-        Button.MouseButton1Down:connect(function()
-            ZenWareLib2.Settings.CurrentPageName.Text = Button.Text
-            for i,v in pairs(ZenWareLib2.Settings.ZenLibMainFrame:GetChildren()) do
-                if v.ClassName == "ScrollingFrame" and v.Name ~= Button.Name  then
-                    v.Visible = false;
-                end
-            end
-            ZenWareLib2.Tabs[SectionName].Visible = true;
-        end)
-
-        function Nigga:AddLabel(Name)
-            local LabelFrame = ZenWareLib2:Create("Frame", {
-                Name = "Label";
-                Parent = ZenWareLib2.Tabs[SectionName];
-                BackgroundColor3 = ZenWareLib2.Settings.Default.ItemBackgroundColor;
-                BorderColor3 = ZenWareLib2.Settings.Default.ItemBackgroundColor;
-                Size = UDim2.new(0, 331, 0, 27);
-            })
-
-            local Label = ZenWareLib2:Create("TextLabel", {
-                Name = "Name";
-                Parent = LabelFrame;
-                BackgroundColor3 = Color3.fromRGB(255, 255, 255);
-                BackgroundTransparency = 1.000;
-                Position = UDim2.new(0.0340818055, 0, 0.222222224, 0);
-                Size = UDim2.new(0, 303, 0, 15);
-                Font = ZenWareLib2.Settings.Default.ItemFont;
-                Text = Name;
-                TextColor3 = ZenWareLib2.Settings.Default.ItemTextColor;
-                TextSize = ZenWareLib2.Settings.Default.ItemFontSize;
-                TextWrapped = true;
-            })
-        end
-
-        function Nigga:AddButton(Name, Callback)
-
-            local ButtonFrame = ZenWareLib2:Create("Frame", {
-                Name = "Button";
-                Parent = ZenWareLib2.Tabs[SectionName];
-                BackgroundColor3 = ZenWareLib2.Settings.Default.ItemBackgroundColor;
-                BorderColor3 = ZenWareLib2.Settings.Default.ItemBackgroundColor;
-                Size = UDim2.new(0, 331, 0, 27);
-            })
-
-            local ButtonLabel = ZenWareLib2:Create("TextLabel", {
-                Name = "Name";
-                Parent = ButtonFrame;
-                BackgroundColor3 = Color3.fromRGB(255, 255, 255);
-                BackgroundTransparency = 1.000;
-                Position = UDim2.new(0.0340818055, 0, 0.222222224, 0);
-                Size =  UDim2.new(0, 131, 0, 15);
-                Font = ZenWareLib2.Settings.Default.ItemFont;
-                Text = Name;
-                TextColor3 = ZenWareLib2.Settings.Default.ItemTextColor;
-                TextSize = ZenWareLib2.Settings.Default.ItemFontSize;
-                TextWrapped = true;
-                TextXAlignment = Enum.TextXAlignment.Left;
-            })
-
-            local Button = ZenWareLib2:Create("TextButton", {
-                Name = "Button";
-                Parent = ButtonFrame;
-                BackgroundColor3 = ZenWareLib2.Settings.Default.ButtonBackgroundColor;
-                BorderColor3 = ZenWareLib2.Settings.Default.ButtonBackgroundColor;
-                BorderSizePixel = 0;
-                Position = UDim2.new(0.585114539, 0, 0.175925925, 0);
-                Size = UDim2.new(0, 126, 0, 16);
-                Font = ZenWareLib2.Settings.Default.ItemFont;
-                Text = Name;
-                TextColor3 = ZenWareLib2.Settings.Default.ItemTextColor;
-                TextSize = ZenWareLib2.Settings.Default.ItemFontSize;
-                AutoButtonColor = false;
-            })
-            Button.MouseButton1Down:connect(function()
-                Callback()
-            end)
-        end
-
-        function Nigga:AddBind(Name,First, Callback)
-
-            local OldBind = First.Name;
-            
-            local BindFrame = ZenWareLib2:Create("Frame", {
-                Name = "Button";
-                Parent = ZenWareLib2.Tabs[SectionName];
-                BackgroundColor3 = ZenWareLib2.Settings.Default.ItemBackgroundColor;
-                BorderColor3 = ZenWareLib2.Settings.Default.ItemBackgroundColor;
-                Size = UDim2.new(0, 331, 0, 27);
-            })
-
-            local BindLabel = ZenWareLib2:Create("TextLabel", {
-                Name = "Name";
-                Parent = BindFrame;
-                BackgroundColor3 = Color3.fromRGB(255, 255, 255);
-                BackgroundTransparency = 1.000;
-                Position = UDim2.new(0.0340818055, 0, 0.222222224, 0);
-                Size =  UDim2.new(0, 131, 0, 15);
-                Font = ZenWareLib2.Settings.Default.ItemFont;
-                Text = Name;
-                TextColor3 = ZenWareLib2.Settings.Default.ItemTextColor;
-                TextSize = ZenWareLib2.Settings.Default.ItemFontSize;
-                TextWrapped = true;
-                TextXAlignment = Enum.TextXAlignment.Left;
-            })
-
-            local Bind = ZenWareLib2:Create("TextButton", {
-                Name = "Bind";
-                Parent = BindFrame;
-                BackgroundColor3 = ZenWareLib2.Settings.Default.ButtonBackgroundColor;
-                BorderColor3 = ZenWareLib2.Settings.Default.ButtonBackgroundColor;
-                BorderSizePixel = 0;
-                Position = UDim2.new(0.85, 0, 0.175925925, 0);
-                Size = UDim2.new(0, 40, 0, 16);
-                Font = ZenWareLib2.Settings.Default.ItemFont;
-                Text = OldBind;
-                TextColor3 = ZenWareLib2.Settings.Default.ItemTextColor;
-                TextSize = ZenWareLib2.Settings.Default.ItemFontSize;
-                AutoButtonColor = false;
-            })
-
-            Bind.MouseButton1Click:connect(function(e) 
-                Bind.Text = "..."
-                local a, b = game:GetService('UserInputService').InputBegan:wait();
-                if a.KeyCode.Name ~= "Unknown" then
-                    Bind.Text = a.KeyCode.Name
-                    OldBind = a.KeyCode.Name;
-                end
-            end)
-    
-            game:GetService("UserInputService").InputBegan:connect(function(Nigger1, Nigger) 
-                if not Nigger then 
-                    if Nigger1.KeyCode.Name == OldBind then 
-                        Callback()
-                    end
-                end
-            end)
-        end
-
-        function Nigga:AddToggle(Name, Callback)
-            local Enabled = false;
-
-            local ToggleFrame = ZenWareLib2:Create("Frame", {
-                Name = "Toggle";
-                Parent = ZenWareLib2.Tabs[SectionName];
-                BackgroundColor3 = ZenWareLib2.Settings.Default.ItemBackgroundColor;
-                BorderColor3 = ZenWareLib2.Settings.Default.ItemBackgroundColor;
-                Size = UDim2.new(0, 331, 0, 27);
-            })
-
-            local ToggleLabel = ZenWareLib2:Create("TextLabel", {
-                Name = "Name";
-                Parent = ToggleFrame;
-                BackgroundColor3 = Color3.fromRGB(255, 255, 255);
-                BackgroundTransparency = 1.000;
-                Position = UDim2.new(0.0340818055, 0, 0.222222224, 0);
-                Size =  UDim2.new(0, 131, 0, 15);
-                Font = ZenWareLib2.Settings.Default.ItemFont;
-                Text = Name;
-                TextColor3 = ZenWareLib2.Settings.Default.ItemTextColor;
-                TextSize = ZenWareLib2.Settings.Default.ItemFontSize;
-                TextWrapped = true;
-                TextXAlignment = Enum.TextXAlignment.Left;
-            })
-
-            local ToggleButton = ZenWareLib2:Create("TextButton", {
-                Name = "ToggleButton";
-                Parent = ToggleFrame;
-                BackgroundColor3 = Color3.fromRGB(255, 7, 65);
-                BackgroundTransparency = 1;
-                BorderSizePixel = 0;
-                Position = UDim2.new(0.92, 0, 0.25, 0);
-                Size = UDim2.new(0, 17, 0, 16);
-                Font = Enum.Font.SourceSans;
-                Text = "";
-                TextColor3 = Color3.fromRGB(0, 0, 0);
-                TextSize = 14.000;        
-            })
-
-            local ToggleState = ZenWareLib2:Create("ImageLabel", {
-                Name = "State";
-                Parent = ToggleButton;
-                Active = true;
-                AnchorPoint = Vector2.new(0.5, 0.5);
-                BackgroundColor3 = Color3.fromRGB(255, 255, 255);
-                BackgroundTransparency = 1.000;
-                Position = UDim2.new(0.5, 0, 0.5, 0);
-                Selectable = true;
-                Size = UDim2.new(1, 0, 1, 0);
-                Image = "rbxassetid://3570695787";
-                ImageColor3 = Color3.fromRGB(175, 0, 0);
-                ScaleType = Enum.ScaleType.Slice;
-                SliceCenter = Rect.new(100, 100, 100, 100);
-                SliceScale = 0.030;
-            })
-
-            ToggleButton.MouseButton1Down:connect(function()
-                if Enabled then
-                    game:GetService("TweenService"):Create(ToggleState, TweenInfo.new(0.2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {ImageColor3 = (Color3.fromRGB(175, 0, 0))}):Play()
-                else
-                    game:GetService("TweenService"):Create(ToggleState, TweenInfo.new(0.2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {ImageColor3 = (Color3.fromRGB(0, 179, 83))}):Play()
-                end
-                Enabled = not Enabled
-
-                Callback(Enabled)
-            end)
-        end
-
-        function Nigga:ColorPicker(Name, DefaultColor, Callback)
-            local Data = {}
-            local Enabled = true;
-            Default = DefaultColor or Color3.fromRGB(255,255,255)
-            local ColorFrame = ZenWareLib2:Create("Frame", {
-                Name = "ColorFrame";
-                Parent = ZenWareLib2.Tabs[SectionName];
-                BackgroundColor3 = ZenWareLib2.Settings.Default.ItemBackgroundColor;
-                BorderColor3 = ZenWareLib2.Settings.Default.ItemBackgroundColor;
-                Size = UDim2.new(0, 331, 0, 27);
-            })
-
-            local ColorLabel = ZenWareLib2:Create("TextLabel", {
-                Name = "Name";
-                Parent = ColorFrame;
-                BackgroundColor3 = Color3.fromRGB(255, 255, 255);
-                BackgroundTransparency = 1.000;
-                Position = UDim2.new(0.0340818055, 0, 0.222222224, 0);
-                Size =  UDim2.new(0, 131, 0, 15);
-                Font = ZenWareLib2.Settings.Default.ItemFont;
-                Text = Name;
-                TextColor3 = ZenWareLib2.Settings.Default.ItemTextColor;
-                TextSize = ZenWareLib2.Settings.Default.ItemFontSize;
-                TextWrapped = true;
-                TextXAlignment = Enum.TextXAlignment.Left;
-            })
-
-            local ColorButton = ZenWareLib2:Create("TextButton", {
-                Name = "ColorButton";
-                Parent = ColorFrame;
-                BackgroundColor3 = Color3.fromRGB(255,255,255);
-                BackgroundTransparency = 1.000;
-                BorderSizePixel = 0;
-                Position = UDim2.new(0.88, 0, 0.25, 0);
-                Size = UDim2.new(0, 30, 0, 16);
-                Font = Enum.Font.SourceSans;
-                Text = "";
-                TextColor3 = Color3.fromRGB(0, 0, 0);
-                TextSize = 14.000;        
-            })
-
-            local ColorState = ZenWareLib2:Create("ImageLabel", {
-                Name = "State";
-                Parent = ColorButton;
-                Active = true;
-                AnchorPoint = Vector2.new(0.5, 0.5);
-                BackgroundColor3 = Color3.fromRGB(255, 255, 255);
-                BackgroundTransparency = 1.000;
-                Position = UDim2.new(0.5, 0, 0.50, 0);
-                Selectable = true;
-                Size = UDim2.new(1, 0, 1, 0);
-                Image = "rbxassetid://3570695787";
-                ImageColor3 = Default;
-                ScaleType = Enum.ScaleType.Slice;
-                SliceCenter = Rect.new(100, 100, 100, 100);
-                SliceScale = 0.030;
-            })
-
-            local ActualColor = ZenWareLib2:Create("Frame", {
-                Name = "ActualColorPicker";
-                Parent = ZenWareLib2.Tabs[SectionName];
-                BackgroundColor3 = Color3.fromRGB(22, 22, 22);
-                BorderColor3 = Color3.fromRGB(22, 22, 22);
-                Position = UDim2.new(0.0148367956, 0, 0.732431829, 0);
-                Size = UDim2.new(0, 331, 0, 114);
-                Visible = false;
-            })
-
-            ColorButton.MouseButton1Down:connect(function()
-                if ActualColor.Visible == false then
-                    ActualColor.Visible = true;
-                else
-                    ActualColor.Visible = false;
-                end
-            end)
-
-            local PickerFrame = ZenWareLib2:Create("Frame", {
-                Name = "ColorPicker";
-                Parent = ActualColor;
-                BackgroundColor3 = Color3.fromRGB(26, 26, 26);
-                BorderColor3 = Color3.fromRGB(26, 26, 26);
-                Position = UDim2.new(0.0340557247, 0, 0.0964912325, 0);
-                Size = UDim2.new(0, 155, 0, 91);
-            })
-
-            local ActualPicker = ZenWareLib2:Create("ImageButton", {
-                Name = "RGB";
-                Parent = PickerFrame;
-                BackgroundColor3 = Color3.fromRGB(255, 255, 255);
-                Position = UDim2.new(0.0597463287, 0, 0.11349152, 0);
-                Size = UDim2.new(0.657302141, 1, 0.798508525, 1);
-                Image = "rbxassetid://1433361550";
-            })
-
-            local PickerMarker = ZenWareLib2:Create("ImageLabel", {
-                Name = "Marker";
-                Parent = ActualPicker;
-                AnchorPoint = Vector2.new(0.5, 0.5);
-                BackgroundColor3 = Color3.fromRGB(255, 255, 255);
-                BackgroundTransparency = 1.000;
-                BorderColor3 = Color3.fromRGB(255, 255, 255);
-                Position = UDim2.new(0.0233191848, 0, 0.965222716, 0);
-                Size = UDim2.new(0, 5, 0, 5);
-                ZIndex = 5;
-                Image = "rbxassetid://3570695787";
-                ImageColor3 = Color3.fromRGB(28, 28, 28);
-                ScaleType = Enum.ScaleType.Slice;
-                SliceCenter = Rect.new(100, 100, 100, 100);
-            })
-
-            local ActualValue = ZenWareLib2:Create("ImageButton", {
-                Name = "Value";
-                Parent = PickerFrame;
-                BackgroundColor3 = Color3.fromRGB(255, 255, 255);
-                BackgroundTransparency = 1.000;
-                BorderSizePixel = 0;
-                ClipsDescendants = true;
-                Position = UDim2.new(0.770402253, 0, 0.113491185, 0);
-                Size = UDim2.new(0.139275447, 1, 0.798508883, 1);
-                ZIndex = 3;
-                Image = "rbxassetid://359311684";
-            })
-
-            local PickerValue = ZenWareLib2:Create("Frame", {
-                Name = "Marker";
-                Parent = ActualValue;
-                BackgroundColor3 = Color3.fromRGB(25, 25, 25);
-                BorderColor3 = Color3.fromRGB(0, 0, 0);
-                BorderSizePixel = 0;
-                Position = UDim2.new(-0.200239256, 0, 0, 0);
-                Size = UDim2.new(0, 28, 0, 4);
-                ZIndex = 5;
-            })
-
-            local RainbowToggleFrame = ZenWareLib2:Create("Frame", {
-                Name = "Toggle";
-                Parent = ActualColor;
-                BackgroundColor3 = Color3.fromRGB(18, 18, 18);
-                BorderColor3 = Color3.fromRGB(18, 18, 18);
-                Position = UDim2.new(0.557275534, 0, 0.0964912027, 0);
-                Size = UDim2.new(0, 140, 0, 27);
-            })
-
-            local RainbowLabel = ZenWareLib2:Create("TextLabel", {
-                Name = "Name";
-                Parent = RainbowToggleFrame;
-                BackgroundColor3 = Color3.fromRGB(18, 18, 18);
-                BackgroundTransparency = 1.000;
-                BorderColor3 = Color3.fromRGB(18, 18, 18);
-                Position = UDim2.new(0.0340817571, 0, 0.222222224, 0);
-                Size = UDim2.new(0, 65, 0, 15);
-                Font = Enum.Font.GothamSemibold;
-                Text = "Rainbow";
-                TextColor3 = Color3.fromRGB(190, 190, 190);
-                TextSize = 10.000;
-                TextWrapped = true;
-                TextXAlignment = Enum.TextXAlignment.Left;
-            })
-
-            local RainbowToggleButton = ZenWareLib2:Create("TextButton", {
-                Name = "ToggleButton";
-                Parent = RainbowToggleFrame;
-                BackgroundColor3 = Color3.fromRGB(255, 7, 65);
-                BackgroundTransparency = 1.000;
-                BorderSizePixel = 0;
-                Position = UDim2.new(0.825198233, 0, 0.17592591, 0);
-                Size = UDim2.new(0, 17, 0, 16);
-                Font = Enum.Font.SourceSans;
-                Text = "";
-                TextColor3 = Color3.fromRGB(0, 0, 0);
-                TextSize = 14.000;
-            })
-
-            local RainbowToggleState = ZenWareLib2:Create("ImageLabel", {
-                Name = "State";
-                Parent = RainbowToggleButton;
-                Active = true;
-                AnchorPoint = Vector2.new(0.5, 0.5);
-                BackgroundColor3 = Color3.fromRGB(255, 255, 255);
-                BackgroundTransparency = 1.000;
-                Position = UDim2.new(0.500000238, 0, 0.5, 0);
-                Selectable = true;
-                Size = UDim2.new(1, 0, 1, 0);
-                Image = "rbxassetid://3570695787";
-                ImageColor3 = Color3.fromRGB(175, 0, 0);
-                ScaleType = Enum.ScaleType.Slice;
-                SliceCenter = Rect.new(100, 100, 100, 100);
-                SliceScale = 0.030;
-            })
-
-            function SetColor(hue,sat,val)
-                Data = {hue or Data[1],sat or Data[2],val or 1}
-                ColorState.ImageColor3 = Color3.fromHSV(Data[1],Data[2],Data[3])
-                ActualValue.ImageColor3 = Color3.fromHSV(Data[1],Data[2],1)
-                local R,G,B = ZenWareLib2:HSVtoRGB(Color3.fromHSV(Data[1],Data[2],Data[3]))
-                Callback(Color3.fromRGB(R,G,B))
-            end
-
-            RainbowToggleButton.MouseButton1Down:connect(function()
-                if Enabled then
-                    game:GetService("TweenService"):Create(RainbowToggleState, TweenInfo.new(0.2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {ImageColor3 = (Color3.fromRGB(175, 0, 0))}):Play()
-                else
-                    game:GetService("TweenService"):Create(RainbowToggleState, TweenInfo.new(0.2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {ImageColor3 = (Color3.fromRGB(0, 179, 83))}):Play()
-                end
-                Enabled = not Enabled
-                spawn(function()
-                    while wait() and Enabled do
-                        local H = tick()%5/5
-                        local S = 0.75
-                        local V = 0.75 
-                        PickerMarker:TweenPosition(UDim2.new(H,1,S,1),"InOut","Sine",0.04,true)
-                        SetColor(H,S,V)        
-                    end
-                end)
-            end)
- 
-            function GetXY(frame)
-                local x,y = ZenWareLib2.Mouse.X - frame.AbsolutePosition.X - 2,ZenWareLib2.Mouse.Y - frame.AbsolutePosition.Y - 2
-                local maxX,maxY = frame.AbsoluteSize.X,frame.AbsoluteSize.Y
-                x = math.clamp(x, 0, maxX);
-                y = math.clamp(y, 0, maxY);
-                return x/maxX,y/maxY
-            end
-            
-            function UpdateRGB()
-                local x,y = GetXY(ActualPicker)
-                if x and y then
-                    PickerMarker:TweenPosition(UDim2.new(x,1,y,1),"InOut","Sine",0.04,true)
-                    SetColor(1 - x,1 - y)
-                end
-            end
-            
-            function UpdateValue()
-                local x,y = GetXY(PickerValue.Parent)
-                if x and y then
-                    PickerValue:TweenPosition(UDim2.new(0,0,y,-3.5),"InOut","Sine",0.04,true)
-                    SetColor(nil,nil,1 - y)
-                end
-            end
-
-            game:GetService("UserInputService").InputEnded:Connect(function(Input)
-                if Input.UserInputType == Enum.UserInputType.MouseButton1 then
-                    if ConnectNigger then
-                        ConnectNigger:Disconnect()
-                        ConnectNigger = nil
-                    end
-                end
-            end)
-            
-            game:GetService("UserInputService").InputEnded:Connect(function(Input)
-                if Input.UserInputType == Enum.UserInputType.MouseButton1 then
-                    if ConnectNigga then
-                        ConnectNigga:Disconnect()
-                        ConnectNigga = nil
-                    end
-                end
-            end)
-            
-            ActualPicker.MouseButton1Down:Connect(function()
-                if ConnectNigga then
-                    ConnectNigga = nil
-                end
-                ConnectNigga = game:GetService("RunService").Stepped:Connect(function()
-                    UpdateRGB()
-                end)
-            end)
-            
-            ActualValue.MouseButton1Down:Connect(function()
-                if ConnectNigger then
-                    ConnectNigger = nil
-                end
-                ConnectNigger = game:GetService("RunService").Stepped:Connect(function()
-                    UpdateValue()
-                end)
-            end)
-        end
-
-        function Nigga:AddBox(Name, Callback)
-            local Enabled = false;
-
-            local BoxFrame = ZenWareLib2:Create("Frame", {
-                Name = "Box";
-                Parent = ZenWareLib2.Tabs[SectionName];
-                BackgroundColor3 = ZenWareLib2.Settings.Default.ItemBackgroundColor;
-                BorderColor3 = ZenWareLib2.Settings.Default.ItemBackgroundColor;
-                Size = UDim2.new(0, 331, 0, 27);
-            })
-
-            local BoxLabel = ZenWareLib2:Create("TextLabel", {
-                Name = "Name";
-                Parent = BoxFrame;
-                BackgroundColor3 = Color3.fromRGB(255, 255, 255);
-                BackgroundTransparency = 1.000;
-                Position = UDim2.new(0.0340818055, 0, 0.222222224, 0);
-                Size =  UDim2.new(0, 131, 0, 15);
-                Font = ZenWareLib2.Settings.Default.ItemFont;
-                Text = Name;
-                TextColor3 = ZenWareLib2.Settings.Default.ItemTextColor;
-                TextSize = ZenWareLib2.Settings.Default.ItemFontSize;
-                TextWrapped = true;
-                TextXAlignment = Enum.TextXAlignment.Left;
-            })
-
-            local TextBox = ZenWareLib2:Create("TextBox", {
-                Parent = BoxFrame;
-                BackgroundColor3 = ZenWareLib2.Settings.Default.TextBoxBackgroundColor;
-                BorderColor3 = ZenWareLib2.Settings.Default.TextBoxBackgroundColor;
-                Position = UDim2.new(0.584999979, 0, 0.175999999, 0);
-                Size = UDim2.new(0, 126, 0, 16);
-                Font = Enum.Font.SourceSansSemibold;
-                PlaceholderColor3 = ZenWareLib2.Settings.Default.ItemTextColor;
-                Text = Name;
-                TextColor3 = ZenWareLib2.Settings.Default.ItemTextColor;
-                TextSize = 14.000;
-                TextStrokeColor3 = ZenWareLib2.Settings.Default.ItemTextColor;
-            })
-
-            TextBox.FocusLost:Connect(function(EnterPressed)
-                if not EnterPressed then return end
-                Callback(TextBox.Text)
-                TextBox.Text = ""
-            end)
-        end
-
-        function Nigga:AddDrop(Name, Tbl, Callback)
-
-            local Dropped = false;
-            local ScrollBarThickness = 0;
-            local ScrollBarSize = 27;
-            local TblSize = table.getn(Tbl);
-            if TblSize > 1 then
-                ScrollBarThickness = 1.5;
-            end
-
-            if TblSize == 2 then
-                ScrollBarSize = 54
-            elseif TblSize > 2 then
-                ScrollBarSize = 81
-            end
-
-            local Enabled = false;
-
-            local DropDownFrame = ZenWareLib2:Create("Frame", {
-                Name = "DropDown";
-                Parent = ZenWareLib2.Tabs[SectionName];
-                BackgroundColor3 = ZenWareLib2.Settings.Default.ItemBackgroundColor;
-                BorderColor3 = ZenWareLib2.Settings.Default.ItemBackgroundColor;
-                Size = UDim2.new(0, 331, 0, 27);
-            })
-
-            local DropDownLabel = ZenWareLib2:Create("TextLabel", {
-                Name = "Name";
-                Parent = DropDownFrame;
-                BackgroundColor3 = Color3.fromRGB(255, 255, 255);
-                BackgroundTransparency = 1.000;
-                Position = UDim2.new(0.0340818055, 0, 0.222222224, 0);
-                Size =  UDim2.new(0, 131, 0, 15);
-                Font = ZenWareLib2.Settings.Default.ItemFont;
-                Text = Name;
-                TextColor3 = ZenWareLib2.Settings.Default.ItemTextColor;
-                TextSize = ZenWareLib2.Settings.Default.ItemFontSize;
-                TextWrapped = true;
-                TextXAlignment = Enum.TextXAlignment.Left;
-            })
-
-            local DropButton = ZenWareLib2:Create("ImageButton", {
-                Name = "DropButton";
-                Parent = DropDownFrame;
-                BackgroundColor3 = ZenWareLib2.Settings.Default.ItemBackgroundColor;
-                BorderColor3 = ZenWareLib2.Settings.Default.ItemBackgroundColor;
-                Position = UDim2.new(0.922230303, 0, 0.175925925, 0);
-                Size = UDim2.new(0, 17, 0, 16);
-                AutoButtonColor = false;
-                Image = "http://www.roblox.com/asset/?id=5231616421";
-            })
-            
-            local ActualDropdown = ZenWareLib2:Create("ScrollingFrame", {
-                Name = SectionName;
-                Parent = ZenWareLib2.Tabs[SectionName];
-                Active = true;
-                BackgroundColor3 = ZenWareLib2.Settings.Default.ItemBackgroundColor;
-                BorderColor3 = ZenWareLib2.Settings.Default.ItemBackgroundColor;
-                Position = UDim2.new(0.0449676514, 0, 0.147286817, 0);
-                Size = UDim2.new(0, 331, 0, ScrollBarSize);
-                ScrollBarThickness = ScrollBarThickness;
-                Visible = false;
-                VerticalScrollBarPosition = Enum.VerticalScrollBarPosition.Left;
-            })
-
-            local Layout = ZenWareLib2:Create("UIListLayout", {
-                Parent = ActualDropdown;
-                SortOrder = Enum.SortOrder.LayoutOrder;
-                Padding = UDim.new(0, 0);
-            })
-
-            Layout.Changed:Connect(function()
-                ActualDropdown.CanvasSize = UDim2.new(0, 0, 0, ( Layout.AbsoluteContentSize.Y + 5))
-            end)
-
-            for i,v in pairs(Tbl) do
-
-                local ActualButton = ZenWareLib2:Create("TextButton", {
-                    Name = v;
-                    Parent = ActualDropdown;
-                    BackgroundColor3 = Color3.fromRGB(20, 20, 20);
-                    BackgroundColor3 = Color3.fromRGB(20, 20, 20);
-                    BorderSizePixel = 0;
-                    Position = UDim2.new(0.0340818055, 0, 0.175925925, 0);
-                    Size = UDim2.new(0, 329, 0, 23);
-                    Font = ZenWareLib2.Settings.Default.ItemFont;
-                    Text = v;
-                    TextColor3 = ZenWareLib2.Settings.Default.ItemTextColor;
-                    TextSize = ZenWareLib2.Settings.Default.ItemFontSize;
-                    AutoButtonColor = false;
-                })
-    
-                ActualButton.MouseButton1Down:connect(function()
-                    Dropped = not Dropped;
-                    --DropDownLabel.Text = ActualButton.Text
-                    game:GetService("TweenService"):Create(DropButton, TweenInfo.new(0.2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {Rotation = 0}):Play()
-                    ActualDropdown.Visible = false;
-                    Callback(ActualButton.Text)
-                end)
-            end
-
-            DropButton.MouseButton1Down:connect(function()
-                if not Dropped then
-                    game:GetService("TweenService"):Create(DropButton, TweenInfo.new(0.2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {Rotation = 180}):Play()
-                    ActualDropdown.Visible = true;
-                else
-                    game:GetService("TweenService"):Create(DropButton, TweenInfo.new(0.2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {Rotation = 0}):Play()
-                    ActualDropdown.Visible = false;
-                end
-                Dropped = not Dropped;
-            end)
-    
-        end
-
-        function Nigga:AddSlider(Name, Min, Max, Current, Callback)
-            local SliderFrame = ZenWareLib2:Create("Frame", {
-                Name = "Slider";
-                Parent = ZenWareLib2.Tabs[SectionName];
-                BackgroundColor3 = ZenWareLib2.Settings.Default.ItemBackgroundColor;
-                BorderColor3 = ZenWareLib2.Settings.Default.ItemBackgroundColor;
-                Size = UDim2.new(0, 331, 0, 27);
-            })
-
-            local SliderName = ZenWareLib2:Create("TextLabel", {
-                Name = "Name";
-                Parent = SliderFrame;
-                BackgroundColor3 = Color3.fromRGB(255, 255, 255);
-                BackgroundTransparency = 1.000;
-                Position = UDim2.new(0.0340818055, 0, 0.222222224, 0);
-                Size =  UDim2.new(0, 131, 0, 15);
-                Font = ZenWareLib2.Settings.Default.ItemFont;
-                Text = Name .. " | "..tostring(Current).."/"..tostring(Max);
-                TextColor3 = ZenWareLib2.Settings.Default.ItemTextColor;
-                TextSize = ZenWareLib2.Settings.Default.ItemFontSize;
-                TextWrapped = true;
-                TextXAlignment = Enum.TextXAlignment.Left;
-            })
-
-        
-
-            local ActualSliding = ZenWareLib2:Create("ImageLabel", {
-                Parent = SliderFrame;
-                BackgroundTransparency = 1;
-                Position = UDim2.new(1, -80, 0.5, -4);
-                Size = UDim2.new(0, 70, 0, 6);
-                Image = "rbxassetid://3570695787";
-                ImageColor3 = Color3.fromRGB(75, 75, 75);
-                ScaleType = "Slice";
-                SliceCenter = Rect.new(100, 100, 100, 100);
-            });
-
-            local SlidingPart = ZenWareLib2:Create("ImageLabel", {
-                Parent = ActualSliding;
-                BackgroundTransparency = 1;
-                Position = UDim2.new((Current or 0)/Max, -6, 0.5, -5);
-                Size = UDim2.new(0, 10, 0, 10);
-                Image = "rbxassetid://3570695787";
-                ScaleType = "Slice";
-                SliceCenter = Rect.new(100, 100, 100, 100);
-                ImageColor3 = Color3.fromRGB(255, 255, 255);
-            });
-
-            function move(input)
-                ZenWareLib2.Settings.Sliding = true;
-                local pos = UDim2.new(math.clamp((input.Position.X - ActualSliding.AbsolutePosition.X) / ActualSliding.AbsoluteSize.X, 0, 1), -6, 0.5, -5)
-                SlidingPart:TweenPosition(pos, "Out", "Sine", 0.1, true);
-                local value = math.floor(((pos.X.Scale * Max) / Max) * (Max - Min) + Min)
-                SliderName.Text = Name .. " | "..tostring(value).."/"..tostring(Max);
-                ZenWareLib2.Settings.Sliding = false;
-                Callback(value)
-            end
-            
-            SlidingPart.InputBegan:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                    Dragging = true;
-                    ZenWareLib2.Settings.Sliding = false;    
-                end
-            end)
-
-            SlidingPart.InputEnded:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                    Dragging = false;
-                end
-            end)
-            
-            game:GetService("UserInputService").InputChanged:Connect(function(input)
-                if Dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-                    move(input)
-                end
-            end)
-        end
-
-        return Nigga;
-    end
-
-    return Nigger;
-end
-
-return ZenWareLib2

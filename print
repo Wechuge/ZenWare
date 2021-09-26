@@ -1,0 +1,5 @@
+local ID = game:GetService("Players").LocalPlayer.UserId
+local User = game:GetService("Players").LocalPlayer
+
+print(ID)
+print(User)
